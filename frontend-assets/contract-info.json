@@ -1,0 +1,117 @@
+{
+  "name": "LearningBuddyManager",
+  "description": "A gamified smart contract for managing virtual learning companions that track educational progress on the blockchain",
+  "version": "1.0.0",
+  "network": {
+    "localhost": {
+      "chainId": 31337,
+      "rpcUrl": "http://127.0.0.1:8545/"
+    },
+    "sepolia": {
+      "chainId": 11155111,
+      "rpcUrl": "https://sepolia.infura.io/v3/YOUR_PROJECT_ID",
+      "explorer": "https://sepolia.etherscan.io/"
+    },
+    "polygon": {
+      "chainId": 137,
+      "rpcUrl": "https://polygon-rpc.com/",
+      "explorer": "https://polygonscan.com/"
+    },
+    "mumbai": {
+      "chainId": 80001,
+      "rpcUrl": "https://rpc-mumbai.maticvigil.com/",
+      "explorer": "https://mumbai.polygonscan.com/"
+    }
+  },
+  "contractAddress": {
+    "localhost": "DEPLOY_AND_UPDATE_THIS",
+    "sepolia": "DEPLOY_AND_UPDATE_THIS", 
+    "polygon": "DEPLOY_AND_UPDATE_THIS",
+    "mumbai": "DEPLOY_AND_UPDATE_THIS"
+  },
+  "functions": {
+    "createBuddy": {
+      "description": "Create a new learning buddy",
+      "inputs": ["name (string)"],
+      "gas": "~167,000",
+      "example": "await contract.createBuddy('StudyBot')"
+    },
+    "completeLesson": {
+      "description": "Award XP for completing lessons",
+      "inputs": ["buddyId (uint256)", "xpGained (uint256)"],
+      "gas": "~54,000",
+      "example": "await contract.completeLesson(0, 150)"
+    },
+    "updateStreak": {
+      "description": "Update daily learning streak",
+      "inputs": ["buddyId (uint256)"],
+      "gas": "~44,000",
+      "example": "await contract.updateStreak(0)"
+    },
+    "claimBadge": {
+      "description": "Claim achievement badges",
+      "inputs": ["buddyId (uint256)", "badge (string)"],
+      "gas": "~71,000",
+      "example": "await contract.claimBadge(0, 'First Lesson')"
+    },
+    "getBuddy": {
+      "description": "Get complete buddy information",
+      "inputs": ["buddyId (uint256)"],
+      "gas": "View function (no gas)",
+      "returns": "LearningBuddy struct",
+      "example": "const buddy = await contract.getBuddy(0)"
+    },
+    "getBuddiesByOwner": {
+      "description": "Get all buddy IDs owned by an address",
+      "inputs": ["user (address)"],
+      "gas": "View function (no gas)",
+      "returns": "uint256[] array of buddy IDs",
+      "example": "const buddyIds = await contract.getBuddiesByOwner(userAddress)"
+    }
+  },
+  "events": {
+    "BuddyCreated": {
+      "description": "Emitted when a new learning buddy is created",
+      "parameters": ["buddyId", "owner", "name"]
+    },
+    "LessonCompleted": {
+      "description": "Emitted when XP is awarded for completing lessons",
+      "parameters": ["buddyId", "xpGained", "newXp", "newLevel"]
+    },
+    "BadgeClaimed": {
+      "description": "Emitted when an achievement badge is claimed",
+      "parameters": ["buddyId", "badge"]
+    },
+    "StreakUpdated": {
+      "description": "Emitted when daily streak is updated",
+      "parameters": ["buddyId", "newStreak"]
+    }
+  },
+  "gameRules": {
+    "leveling": {
+      "formula": "Level = 1 + (Total XP ÷ 100)",
+      "example": "100 XP = Level 2, 250 XP = Level 3"
+    },
+    "streaks": {
+      "rule": "Must interact within 24 hours to maintain streak",
+      "reset": "Streak resets to 1 if gap > 1 day"
+    },
+    "ownership": {
+      "rule": "Only buddy owner can modify their buddy's progress",
+      "security": "Enforced by onlyOwner modifier"
+    }
+  },
+  "integration": {
+    "wallets": ["MetaMask", "Coinbase Wallet", "WalletConnect"],
+    "frameworks": ["React", "Next.js", "Vue.js", "Angular"],
+    "libraries": ["ethers.js", "web3.js", "wagmi", "viem"]
+  },
+  "futureFeatures": [
+    "NFT badges integration",
+    "ENS subdomain support (buddy.ethed.eth)",
+    "Polygon ID credential verification",
+    "Cross-chain buddy migration",
+    "Buddy breeding/evolution mechanics",
+    "Educational marketplace integration"
+  ]
+}

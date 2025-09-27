@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎓 LearningBuddy Demo</title>
+    <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <script>
+        // Ensure ethers is loaded before proceeding
+        function checkEthersLoaded() {
+            if (typeof ethers !== 'undefined') {
+                console.log('✅ Ethers.js loaded successfully:', ethers.version || 'v5.x');
+                document.getElementById('status').textContent = 'Please connect your wallet to get started';
+                return true;
+            } else {
+                console.error('❌ Ethers.js failed to load!');
+                document.getElementById('status').textContent = 'Error: Ethers.js library failed to load - please refresh';
+                document.getElementById('status').className = 'status disconnected';
+                return false;
+            }
+        }
+        
+        // Check immediately and also on window load
+        setTimeout(checkEthersLoaded, 100);
+        window.addEventListener('load', checkEthersLoaded);
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 20px; 
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        h1 { 
+            text-align: center; 
+            color: #333; 
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+        }
+        .status { 
+            padding: 15px; 
+            border-radius: 10px; 
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .status.disconnected { background: #fee; color: #c33; }
+        .status.connected { background: #efe; color: #3c3; }
+        .status.loading { background: #fef6e7; color: #f57c00; }
+        .section { 
+            background: #f8f9fa; 
+            padding: 20px; 
+            border-radius: 15px; 
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+        .section h3 { 
+            color: #333; 
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+        .form-group { 
+            margin-bottom: 15px; 
+        }
+        .form-group label { 
+            display: block; 
+            margin-bottom: 5px; 
+            color: #555;
+            font-weight: 500;
+        }
+        .form-group input, .form-group select { 
+            width: 100%; 
+            padding: 12px; 
+            border: 2px solid #e1e5e9; 
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus, .form-group select:focus { 
+            border-color: #667eea; 
+            outline: none;
+        }
+        .btn { 
+            background: #667eea; 
+            color: white; 
+            padding: 12px 24px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .btn:hover { 
+            background: #5a67d8; 
+            transform: translateY(-2px);
+        }
+        .btn:disabled { 
+            background: #ccc; 
+            cursor: not-allowed;
+            transform: none;
+        }
+        .buddy-card { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 12px; 
+            margin-bottom: 15px;
+            border: 2px solid #e1e5e9;
+            transition: all 0.3s;
+        }
+        .buddy-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+        }
+        .buddy-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 15px;
+        }
+        .buddy-name { 
+            font-size: 1.4rem; 
+            font-weight: bold; 
+            color: #333;
+        }
+        .buddy-level { 
+            background: #667eea; 
+            color: white; 
+            padding: 5px 12px; 
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        .buddy-stats { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); 
+            gap: 15px; 
+            margin-bottom: 15px;
+        }
+        .stat { 
+            text-align: center; 
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .stat-value { 
+            font-size: 1.2rem; 
+            font-weight: bold; 
+            color: #667eea;
+        }
+        .stat-label { 
+            font-size: 0.8rem; 
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .badges { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 8px; 
+            margin-top: 10px;
+        }
+        .badge { 
+            background: #ffd700; 
+            color: #333; 
+            padding: 4px 12px; 
+            border-radius: 20px; 
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .actions { 
+            margin-top: 15px;
+        }
+        .log { 
+            background: #1a1a1a; 
+            color: #00ff00; 
+            padding: 15px; 
+            border-radius: 8px; 
+            height: 200px; 
+            overflow-y: scroll;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+        .network-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎓 LearningBuddy Demo</h1>
+        
+        <div id="status" class="status disconnected">
+            Please connect your wallet to get started
+        </div>
+
+        <div class="warning">
+            <strong>🎯 Demo Ready!</strong> The contract is deployed at <code>0x5FbDB2315678afecb367f032d93F642f64180aa3</code>. Start a local Hardhat node with <code>npx hardhat node</code> and connect MetaMask to test!
+        </div>
+
+        <div class="network-info">
+            <strong>📡 Supported Networks:</strong>
+            <ul style="margin-top: 10px;">
+                <li><strong>🏆 0G Mainnet:</strong> EVM-compatible AI Network (Chain ID: 16600)</li>
+                <li><strong>🧪 0G Galileo Testnet:</strong> Latest Testnet (Chain ID: 16602)</li>
+                <li><strong>Local:</strong> Hardhat Node (Chain ID: 31337)</li>
+                <li><strong>Polygon:</strong> Mainnet (Chain ID: 137)</li>
+                <li><strong>Mumbai:</strong> Polygon Testnet (Chain ID: 80001)</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h3>🔗 Wallet Connection</h3>
+            <button id="connectBtn" class="btn">Connect MetaMask</button>
+            <div id="accountInfo" style="margin-top: 15px; display: none;">
+                <p><strong>Account:</strong> <span id="account"></span></p>
+                <p><strong>Network:</strong> <span id="network"></span></p>
+                <p><strong>Balance:</strong> <span id="balance"></span> ETH</p>
+            </div>
+        </div>
+
+        <div class="section" id="createSection" style="display: none;">
+            <h3>🐣 Create Learning Buddy</h3>
+            <div class="form-group">
+                <label for="buddyName">Buddy Name:</label>
+                <input type="text" id="buddyName" placeholder="e.g., StudyBot, MathPal, CodeWiz">
+            </div>
+            <button id="createBtn" class="btn">Create Buddy</button>
+        </div>
+
+        <div class="section" id="buddiesSection" style="display: none;">
+            <h3>👥 Your Learning Buddies</h3>
+            <div id="buddiesList"></div>
+            <button id="refreshBtn" class="btn">Refresh Buddies</button>
+        </div>
+
+        <div class="section">
+            <h3>📊 Activity Log</h3>
+            <div id="log" class="log">🎯 Welcome to LearningBuddy Demo!\n📝 Connect your wallet to start...\n</div>
+        </div>
+    </div>
+
+    <script>
+        // CONTRACT CONFIGURATION - DEPLOYED AND READY!
+        const CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+        const CONTRACT_ABI = [
+            {
+                "anonymous": false,
+                "inputs": [
+                    {"indexed": false, "internalType": "uint256", "name": "buddyId", "type": "uint256"},
+                    {"indexed": false, "internalType": "string", "name": "badge", "type": "string"}
+                ],
+                "name": "BadgeClaimed",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {"indexed": false, "internalType": "uint256", "name": "buddyId", "type": "uint256"},
+                    {"indexed": false, "internalType": "address", "name": "owner", "type": "address"},
+                    {"indexed": false, "internalType": "string", "name": "name", "type": "string"}
+                ],
+                "name": "BuddyCreated",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {"indexed": false, "internalType": "uint256", "name": "buddyId", "type": "uint256"},
+                    {"indexed": false, "internalType": "uint256", "name": "xpGained", "type": "uint256"},
+                    {"indexed": false, "internalType": "uint256", "name": "newXp", "type": "uint256"},
+                    {"indexed": false, "internalType": "uint256", "name": "newLevel", "type": "uint256"}
+                ],
+                "name": "LessonCompleted",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {"indexed": false, "internalType": "uint256", "name": "buddyId", "type": "uint256"},
+                    {"indexed": false, "internalType": "uint256", "name": "newStreak", "type": "uint256"}
+                ],
+                "name": "StreakUpdated",
+                "type": "event"
+            },
+            {
+                "inputs": [
+                    {"internalType": "uint256", "name": "buddyId", "type": "uint256"},
+                    {"internalType": "string", "name": "badge", "type": "string"}
+                ],
+                "name": "claimBadge",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {"internalType": "uint256", "name": "buddyId", "type": "uint256"},
+                    {"internalType": "uint256", "name": "xpGained", "type": "uint256"}
+                ],
+                "name": "completeLesson",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [{"internalType": "string", "name": "name", "type": "string"}],
+                "name": "createBuddy",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [{"internalType": "address", "name": "user", "type": "address"}],
+                "name": "getBuddiesByOwner",
+                "outputs": [{"internalType": "uint256[]", "name": "", "type": "uint256[]"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [{"internalType": "uint256", "name": "buddyId", "type": "uint256"}],
+                "name": "getBuddy",
+                "outputs": [{
+                    "components": [
+                        {"internalType": "uint256", "name": "id", "type": "uint256"},
+                        {"internalType": "string", "name": "name", "type": "string"},
+                        {"internalType": "uint256", "name": "level", "type": "uint256"},
+                        {"internalType": "uint256", "name": "xp", "type": "uint256"},
+                        {"internalType": "uint256", "name": "streak", "type": "uint256"},
+                        {"internalType": "string[]", "name": "badges", "type": "string[]"},
+                        {"internalType": "uint256", "name": "lastActive", "type": "uint256"},
+                        {"internalType": "address", "name": "owner", "type": "address"}
+                    ],
+                    "internalType": "struct LearningBuddyManager.LearningBuddy",
+                    "name": "",
+                    "type": "tuple"
+                }],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [{"internalType": "uint256", "name": "buddyId", "type": "uint256"}],
+                "name": "updateStreak",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            }
+        ];
+
+        let provider, signer, contract, account;
+
+        // DOM elements
+        const status = document.getElementById('status');
+        const connectBtn = document.getElementById('connectBtn');
+        const accountInfo = document.getElementById('accountInfo');
+        const createSection = document.getElementById('createSection');
+        const buddiesSection = document.getElementById('buddiesSection');
+        const log = document.getElementById('log');
+
+        function logMessage(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            log.textContent += `[${timestamp}] ${message}\n`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function updateStatus(message, className) {
+            status.textContent = message;
+            status.className = `status ${className}`;
+        }
+
+        async function connectWallet() {
+            try {
+                // Check if ethers is available
+                if (typeof ethers === 'undefined') {
+                    throw new Error('Ethers.js library not loaded. Please refresh the page.');
+                }
+                
+                if (typeof window.ethereum === 'undefined') {
+                    throw new Error('MetaMask not installed');
+                }
+
+                updateStatus('Connecting to wallet...', 'loading');
+                logMessage('🔌 Connecting to MetaMask...');
+                logMessage(`📚 Using ethers.js version: ${ethers.version || 'unknown'}`);
+
+                // Request account access
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                
+                // Set up provider and signer
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                signer = provider.getSigner();
+                account = await signer.getAddress();
+
+                // Get network info
+                const network = await provider.getNetwork();
+                const balance = await provider.getBalance(account);
+
+                // Check if we're on the right network (support multiple networks)
+                const supportedChainIds = [31337, 16600, 16602]; // Hardhat, 0G Mainnet, 0G Galileo Testnet
+                const expectedChainId = 16602; // Default to 0G Galileo Testnet for hackathon
+                if (!supportedChainIds.includes(network.chainId)) {
+                    logMessage(`⚠️ Unsupported network: ${network.name} (${network.chainId})`);
+                    logMessage(`🔄 Please switch to 0G Network for hackathon demo`);
+                    
+                    // Try to switch to 0G Galileo Testnet automatically
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_switchEthereumChain',
+                            params: [{ chainId: '0x40da' }], // 16602 in hex (0G Galileo Testnet)
+                        });
+                        setTimeout(() => connectWallet(), 1000);
+                        return;
+                    } catch (switchError) {
+                        // Try to add 0G Galileo Testnet
+                        try {
+                            await window.ethereum.request({
+                                method: 'wallet_addEthereumChain',
+                                params: [{
+                                    chainId: '0x40da', // 16602 in hex
+                                    chainName: '0G Galileo Testnet',
+                                    nativeCurrency: {
+                                        name: '0G',
+                                        symbol: '0G',
+                                        decimals: 18
+                                    },
+                                    rpcUrls: ['https://evmrpc-testnet.0g.ai'],
+                                    blockExplorerUrls: ['https://chainscan-galileo.0g.ai']
+                                }],
+                            });
+                            logMessage('✅ 0G Galileo Testnet added to MetaMask');
+                            setTimeout(() => connectWallet(), 1000);
+                            return;
+                        } catch (addError) {
+                            // Fallback: try 0G mainnet
+                            try {
+                                await window.ethereum.request({
+                                    method: 'wallet_addEthereumChain',
+                                    params: [{
+                                        chainId: '0x40d8', // 16600 in hex  
+                                        chainName: '0G Mainnet',
+                                        nativeCurrency: {
+                                            name: '0G',
+                                            symbol: '0G', 
+                                            decimals: 18
+                                        },
+                                        rpcUrls: ['https://evmrpc-mainnet.0g.ai'],
+                                        blockExplorerUrls: ['https://scan.0g.ai']
+                                    }],
+                                });
+                                logMessage('✅ 0G Mainnet added to MetaMask');
+                                setTimeout(() => connectWallet(), 1000);
+                                return;
+                            } catch (mainnetError) {
+                                logMessage('❌ Failed to add 0G networks. Please add manually:');
+                                logMessage('   0G Galileo Testnet - Chain ID: 16602, RPC: https://evmrpc-testnet.0g.ai');
+                                logMessage('   0G Mainnet - Chain ID: 16600, RPC: https://evmrpc-mainnet.0g.ai');
+                                updateStatus('Please switch to 0G network for hackathon', 'disconnected');
+                                return;
+                            }
+                        }
+                    }
+                }
+
+                // Initialize contract (only if address is set and on correct network)
+                if (CONTRACT_ADDRESS && CONTRACT_ADDRESS !== "0x...") {
+                    contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+                    logMessage('✅ Contract initialized');
+                } else {
+                    logMessage('⚠️ Contract address not set - please deploy first');
+                }
+
+                // Update UI
+                document.getElementById('account').textContent = `${account.slice(0, 6)}...${account.slice(-4)}`;
+                let networkDisplay;
+                if (network.chainId === 16600) {
+                    networkDisplay = `🏆 0G Mainnet (${network.chainId})`;
+                } else if (network.chainId === 16602) {
+                    networkDisplay = `🧪 0G Galileo Testnet (${network.chainId})`;
+                } else if (network.chainId === 31337) {
+                    networkDisplay = `🔧 Hardhat Local (${network.chainId})`;
+                } else {
+                    networkDisplay = `⚠️ ${network.name} (${network.chainId}) - UNSUPPORTED`;
+                }
+                document.getElementById('network').textContent = networkDisplay;
+                const currencySymbol = (network.chainId === 16600 || network.chainId === 16602) ? '0G' : 'ETH';
+                document.getElementById('balance').textContent = ethers.utils.formatEther(balance).slice(0, 8) + ' ' + currencySymbol;
+
+                accountInfo.style.display = 'block';
+                createSection.style.display = 'block';
+                buddiesSection.style.display = 'block';
+
+                updateStatus(`Connected: ${account.slice(0, 6)}...${account.slice(-4)}`, 'connected');
+                logMessage(`✅ Connected to ${account}`);
+                logMessage(`🌐 Network: ${network.name} (${network.chainId})`);
+
+                // Load existing buddies
+                if (contract) {
+                    await loadBuddies();
+                }
+
+            } catch (error) {
+                console.error('Connection failed:', error);
+                updateStatus(`Connection failed: ${error.message}`, 'disconnected');
+                logMessage(`❌ Connection failed: ${error.message}`);
+            }
+        }
+
+        async function createBuddy() {
+            if (!contract) {
+                logMessage('❌ Contract not initialized');
+                return;
+            }
+
+            const name = document.getElementById('buddyName').value.trim();
+            if (!name) {
+                logMessage('❌ Please enter a buddy name');
+                return;
+            }
+
+            try {
+                updateStatus('Creating buddy...', 'loading');
+                logMessage(`🐣 Creating buddy: ${name}`);
+
+                const tx = await contract.createBuddy(name);
+                logMessage(`📝 Transaction sent: ${tx.hash}`);
+
+                const receipt = await tx.wait();
+                logMessage(`✅ Buddy created! Gas used: ${receipt.gasUsed.toString()}`);
+
+                document.getElementById('buddyName').value = '';
+                updateStatus(`Connected: ${account.slice(0, 6)}...${account.slice(-4)}`, 'connected');
+
+                // Reload buddies
+                await loadBuddies();
+
+            } catch (error) {
+                console.error('Create buddy failed:', error);
+                logMessage(`❌ Failed to create buddy: ${error.message}`);
+                updateStatus(`Connected: ${account.slice(0, 6)}...${account.slice(-4)}`, 'connected');
+            }
+        }
+
+        async function loadBuddies() {
+            if (!contract || !account) return;
+
+            try {
+                logMessage('📊 Loading buddies...');
+                const buddyIds = await contract.getBuddiesByOwner(account);
+                
+                const buddiesList = document.getElementById('buddiesList');
+                buddiesList.innerHTML = '';
+
+                if (buddyIds.length === 0) {
+                    buddiesList.innerHTML = '<p style="text-align: center; color: #666;">No buddies yet. Create your first one above! 🚀</p>';
+                    return;
+                }
+
+                for (const id of buddyIds) {
+                    const buddy = await contract.getBuddy(id);
+                    renderBuddy(buddy, buddiesList);
+                }
+
+                logMessage(`✅ Loaded ${buddyIds.length} buddies`);
+
+            } catch (error) {
+                console.error('Load buddies failed:', error);
+                logMessage(`❌ Failed to load buddies: ${error.message}`);
+            }
+        }
+
+        function renderBuddy(buddy, container) {
+            const buddyCard = document.createElement('div');
+            buddyCard.className = 'buddy-card';
+            
+            buddyCard.innerHTML = `
+                <div class="buddy-header">
+                    <div class="buddy-name">${buddy.name}</div>
+                    <div class="buddy-level">Level ${buddy.level.toString()}</div>
+                </div>
+                <div class="buddy-stats">
+                    <div class="stat">
+                        <div class="stat-value">${buddy.xp.toString()}</div>
+                        <div class="stat-label">XP</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">🔥 ${buddy.streak.toString()}</div>
+                        <div class="stat-label">Streak</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">🏆 ${buddy.badges.length}</div>
+                        <div class="stat-label">Badges</div>
+                    </div>
+                </div>
+                ${buddy.badges.length > 0 ? `
+                    <div class="badges">
+                        ${buddy.badges.map(badge => `<span class="badge">${badge}</span>`).join('')}
+                    </div>
+                ` : ''}
+                <div class="actions">
+                    <button class="btn" onclick="completeLesson(${buddy.id.toString()})">Complete Lesson (+100 XP)</button>
+                    <button class="btn" onclick="updateStreak(${buddy.id.toString()})">Daily Check-in</button>
+                    <button class="btn" onclick="claimBadge(${buddy.id.toString()})">Claim Badge</button>
+                </div>
+            `;
+            
+            container.appendChild(buddyCard);
+        }
+
+        async function completeLesson(buddyId) {
+            if (!contract) return;
+
+            try {
+                updateStatus('Completing lesson...', 'loading');
+                logMessage(`📚 Completing lesson for buddy ${buddyId}`);
+
+                const tx = await contract.completeLesson(buddyId, 100);
+                logMessage(`📝 Transaction sent: ${tx.hash}`);
+
+                await tx.wait();
+                logMessage(`✅ Lesson completed! +100 XP`);
+
+                updateStatus(`Connected: ${account.slice(0, 6)}...${account.slice(-4)}`, 'connected');
+                await loadBuddies();
+
+            } catch (error) {
+                console.error('Complete lesson failed:', error);
+                logMessage(`❌ Failed to complete lesson: ${error.message}`);
+                updateStatus(`Connected: ${account.slice(0, 6)}...${account.slice(-4)}`, 'connected');
+            }
+        }
+
+        async function updateStreak(buddyId) {
+            if (!contract) return;
+
+            try {
+                updateStatus('Updating streak...', 'loading');
+                logMessage(`🔥 Updating streak for buddy ${buddyId}`);
+
+                const tx = await contract.updateStreak(buddyId);
+                logMessage(`📝 Transaction sent: ${tx.hash}`);
+
+                await tx.wait();
+                logMessage(`✅ Streak updated!`);
+
+                updateStatus(`Connected: ${account.slice(0, 6)}...${account.slice(-4)}`, 'connected');
+                await loadBuddies();
+
+            } catch (error) {
+                console.error('Update streak failed:', error);
+                logMessage(`❌ Failed to update streak: ${error.message}`);
+                updateStatus(`Connected: ${account.slice(0, 6)}...${account.slice(-4)}`, 'connected');
+            }
+        }
+
+        async function claimBadge(buddyId) {
+            if (!contract) return;
+
+            const badges = [
+                "First Lesson", "Quick Learner", "Study Champion", 
+                "Week Warrior", "Knowledge Seeker", "Academic Star"
+            ];
+            const randomBadge = badges[Math.floor(Math.random() * badges.length)];
+
+            try {
+                updateStatus('Claiming badge...', 'loading');
+                logMessage(`🏆 Claiming badge "${randomBadge}" for buddy ${buddyId}`);
+
+                const tx = await contract.claimBadge(buddyId, randomBadge);
+                logMessage(`📝 Transaction sent: ${tx.hash}`);
+
+                await tx.wait();
+                logMessage(`✅ Badge "${randomBadge}" claimed!`);
+
+                updateStatus(`Connected: ${account.slice(0, 6)}...${account.slice(-4)}`, 'connected');
+                await loadBuddies();
+
+            } catch (error) {
+                console.error('Claim badge failed:', error);
+                logMessage(`❌ Failed to claim badge: ${error.message}`);
+                updateStatus(`Connected: ${account.slice(0, 6)}...${account.slice(-4)}`, 'connected');
+            }
+        }
+
+        // Event listeners
+        connectBtn.addEventListener('click', connectWallet);
+        document.getElementById('createBtn').addEventListener('click', createBuddy);
+        document.getElementById('refreshBtn').addEventListener('click', loadBuddies);
+
+        // Handle account changes
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', function (accounts) {
+                if (accounts.length === 0) {
+                    updateStatus('Please connect your wallet', 'disconnected');
+                    logMessage('🔌 Wallet disconnected');
+                } else {
+                    connectWallet();
+                }
+            });
+
+            window.ethereum.on('chainChanged', function (chainId) {
+                logMessage(`🌐 Network changed to ${chainId}`);
+                connectWallet();
+            });
+        }
+
+        logMessage('🎯 Demo loaded! Click "Connect MetaMask" to start.');
+        logMessage('⚠️ Make sure to deploy the contract and update CONTRACT_ADDRESS first.');
+    </script>
+</body>
+</html>
